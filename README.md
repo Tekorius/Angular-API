@@ -1,6 +1,10 @@
+[Documentation](docs/index.md) | [API DOC](docs/endpoint.md)
+
 # AngularJS RIP API
 
 This module is intended to speed up the process of integrating different APIs to your Angular application.
+
+Pull requests with optimizations and bugfixes are always welcome.
 
 ## Getting started
 
@@ -111,3 +115,12 @@ Api service is injected as `$api`
             
         });
 
+## TODO
+
+* Multiple environments (changing root node path non destructively)
+* Attach / detach nodes
+* Data transformers
+* Events
+* Hooks / interceptors
+* OAuth integration
+* Deferrable POST, PUT, PATCH in case of no internet connection (for example on mobile) (requested by business client)
