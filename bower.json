@@ -1,0 +1,24 @@
+{
+  "name": "angular-rip-api",
+  "description": "AngularJS module to speed up integration of API",
+  "version": "0.1.0",
+  "main": "angular-rip-api.js",
+  "ignore": [
+    "sample",
+    "src",
+    "test",
+    ".bowerrc",
+    ".coveralls.yml",
+    ".gitignore",
+    ".jshintrc",
+    ".travis.yml",
+    "bower.json",
+    "package.json",
+    "README.md"
+  ],
+  "dependencies": {
+    "angular": ">=1.2.30"
+  },
+  "devDependencies": {
+  }
+}
