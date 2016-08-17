@@ -14,6 +14,17 @@
  */
 function RipApiEndpoint(method, name, path) {
 
+    // ====== Private methods =====
+    var buildUrlEncoded = function(params) {
+        var par = '';
+
+        angular.forEach(params, function(value, key) {
+            par += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(value);
+        });
+
+        return par.substr(1);
+    };
+
     // ===== Endpoint call =====
     var svc = function(replace, body, params) {
         /*console.log(replace);
@@ -45,16 +56,84 @@ function RipApiEndpoint(method, name, path) {
             data = body;
         }
 
-        $injector.get('$http')({
+        var headers = svc.getHeaders();
+        var url = svc.getUrl(replace, params);
+
+        // Intercept before building a request object
+        var itc = svc.getInterceptors('bind');
+        angular.forEach(itc, function(fn, key) {
+            fn(data, headers, url, svc);
+        });
+
+        // Drop undefined fields
+        angular.forEach(data, function(value, key) {
+            if(typeof value === 'undefined') { delete data[key] }
+        });
+
+        // If this is not a json, then encode the form
+        var contentType = null;
+        angular.forEach(headers, function(value, key) {
+            if(key.toLowerCase() == 'content-type') { contentType = value; }
+        });
+
+        var dataobj = data;
+        if(contentType && contentType.indexOf('application/x-www-form-urlencoded') !== -1) {
+            data = buildUrlEncoded(data);
+        }
+
+        // Build a request object
+        var request = {
             method: svc.method,
-            url: svc.getUrl(replace, params),
-            headers: svc.getHeaders(),
+            url: url,
+            headers: headers,
             data: data
-        })
+        };
+
+        // Intercept before request
+        itc = svc.getInterceptors('before');
+        angular.forEach(itc, function(fn, key) {
+            fn(request, dataobj, svc);
+        });
+
+        $injector.get('$http')(request)
+
+            // Success response
             .then(function(data) {
-                q.resolve(data);
+
+                // Intercept something after success
+                var ret = true;
+                itc = svc.getInterceptors('success');
+                angular.forEach(itc, function(fn, key) {
+                    var r = fn(data, request, q, ret, svc);
+                    if(!r) { ret = false } // This stops resolving the promise
+                });
+
+                // Return only if interceptor allows
+                if(ret) { q.resolve(data) }
+
+            // Error response
             }, function(data) {
-                q.reject(data);
+
+                // Intercept something after error
+                var ret = true;
+                itc = svc.getInterceptors('error');
+                angular.forEach(itc, function(fn, key) {
+                    var r = fn(data, request, q, ret, svc);
+                    if(!r) { ret = false } // This stops resolving the promise
+                });
+
+                // Return only if interceptor allows
+                if(ret) { q.reject(data) }
+            })
+
+            // Finally
+            .finally(function() {
+
+                // Intercept after
+                itc = svc.getInterceptors('after');
+                angular.forEach(itc, function(fn, key) {
+                    fn(svc);
+                });
             });
 
         return q.promise;
@@ -85,6 +164,7 @@ function RipApiEndpoint(method, name, path) {
                 svc.path = '';
         }
     }
+
     else {
         svc.path = '/' + svc.names;
     }
@@ -100,6 +180,18 @@ function RipApiEndpoint(method, name, path) {
         request: [],
         response: []
     };
+
+    /** Defines interceptors (hooks) */
+    svc.interceptors = {
+        bind: {},
+        before: {},
+        success: {},
+        error: {},
+        after: {}
+    };
+
+    /** Custom params user may want to pass */
+    svc.params = {};
 
     /** Parent of this node */
     svc.parent = null;
@@ -206,6 +298,44 @@ function RipApiEndpoint(method, name, path) {
         return angular.extend({}, svc.parent ? svc.parent.getHeaders() : {}, headers);
     };
 
+    // Param
+    svc.param = function(key, value) {
+        // set
+        if(typeof value !== 'undefined') {
+            svc.params[key] = value;
+            return svc;
+        }
+
+        // get
+        else {
+            return svc.params[key];
+        }
+    };
+
+    svc.addParams = function(object) {
+        angular.forEach(object, function(value, key) {
+            svc.param(key, value);
+        });
+
+        return svc;
+    };
+
+    svc.getParams = function() {
+        var params = svc.params;
+
+        return angular.extend({}, svc.parent ? svc.parent.getParams() : {}, params);
+    };
+    
+    svc.getParam = function(name) {
+        var param = svc.params[name];
+        
+        if(typeof param === 'undefined' && svc.parent) {
+            return svc.parent.getParam(name);
+        }
+        
+        return param;
+    };
+
     // Path
     svc.setPath = function(path) {
         svc.path = path;
@@ -220,18 +350,16 @@ function RipApiEndpoint(method, name, path) {
     svc.getUrl = function(replace, params) {
         var path = svc.getPath();
 
+        // Replace colon variables
         angular.forEach(replace, function(value, key) {
             path = path.replace(new RegExp('(\:' + key + ')($|\/)'), value + '/');
         });
-
-        var par = '';
-
-        angular.forEach(params, function(value, key) {
-            par += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(value);
-        });
+        
+        // Add get params
+        var par = buildUrlEncoded(params);
 
         if(par) {
-            path += '?' + par.substr(1);
+            path += '?' + par;
         }
 
         return path;
@@ -258,6 +386,38 @@ function RipApiEndpoint(method, name, path) {
         });
 
         return svc;
+    };
+
+    // Interceptors
+    svc.interceptor = function(type, name, fn) {
+
+        switch (type) {
+            case 'bind':
+            case 'before':
+            case 'success':
+            case 'error':
+            case 'after':
+                break;
+            default:
+                throw 'Interceptor type must be one of these: bind, before, success, error, after';
+        }
+        // set
+        if(typeof fn !== 'undefined') {
+            svc.interceptors[type][name] = fn;
+            return svc;
+        }
+
+        // get
+        else {
+            return svc.interceptors[type][name];
+        }
+
+    };
+
+    svc.getInterceptors = function(type) {
+        var interceptors = svc.interceptors[type];
+
+        return angular.extend({}, svc.parent ? svc.parent.getInterceptors(type) : {}, interceptors);
     };
 
     // Strict

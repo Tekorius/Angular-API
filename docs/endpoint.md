@@ -222,6 +222,55 @@ Adds a header with value to current endpoint
 
 Adds more than one header to current endpoint. Calls header() for each key
 
+### \_endpoint.interceptor( type, name, \[function\] )
+
+*String* **type** - Type of interceptor. Can be `bind`, `before`, `success`, `error`, `after`
+*String* **name** - Name of the interceptor
+*Function* *function* - Callback of the interceptor. Signature depends on type. 
+
+Adds or gets an interceptor to an endpoint
+
+Example:
+
+    // Set
+    $api('endpoint').interceptor('bind', 'name', function(data, headers, url, endpointObject) {  });
+    $api('endpoint').interceptor('before', 'name', function(requestObject, dataObject, endpointObject) {  });
+    $api('endpoint').interceptor('success', 'name', function($httpResponse, requestObject, promise, willPromiseResolve, endpointObject) { return true });
+    $api('endpoint').interceptor('error', 'name', function($httpResponse, requestObject, promise, willPromiseReject, endpointObject) { return true });
+    $api('endpoint').interceptor('after', 'name', function(endpointObject) {  });
+    
+    // Get
+    var itc = $api('endpoint').interceptor('bind', 'name');
+    
+### \_endpoint.getInterceptors( type )
+
+*String* **type** - Type of interceptor
+
+Gets all interceptors of set type. Will also get parent interceptors, unless overridden
+
+### \_endpoint.param( key, \[value\] )
+
+*String* **key**
+*String* **value** - If not set, will act as a getter
+
+Get or set a param of endpoint. To use in interceptors.
+
+### \_endpoint.addParams( object )
+
+*Object* **object** - Key: value pairs of params
+
+For each key calls .param()
+
+### \_endpoint.getParams()
+
+Gets params of the endpoint and parent endpoints, unless overridden
+
+### \_endpoint.getParam( name )
+
+*String* **name** - Name of param to search for
+
+Find a parameter in current endpoint or one of its parents
+
 ## Take a look at the source
 
 I strongly encourage you to look at the source file to see how these methods work.

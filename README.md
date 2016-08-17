@@ -1,4 +1,4 @@
-[Documentation](docs/index.md) | [API DOC](docs/endpoint.md)
+[Documentation](docs/index.md) | [API DOC](docs/endpoint.md) | [Plugins](docs/plugins.md)
 
 # AngularJS RIP API
 
@@ -16,7 +16,7 @@ You should use Bower to install this module
     
 After the module is downloaded include the following JavaScript to your application
 
-`./bower_components/angular-rip-api/angular-rip.api.js`
+`./bower_components/angular-rip-api/angular-rip-api.js`
 
 ### Configuration
 

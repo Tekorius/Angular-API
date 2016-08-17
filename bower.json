@@ -1,7 +1,7 @@
 {
   "name": "angular-rip-api",
   "description": "AngularJS module to speed up integration of API",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "angular-rip-api.js",
   "ignore": [
     "sample",
